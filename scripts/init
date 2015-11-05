@@ -61,6 +61,16 @@ if [ "${PG_HOST}" == "localhost" ]; then
   sudo -u postgres psql template0 -c "create database template1 with template = template0 encoding = 'UTF8';"
   sudo -u postgres psql template0 -c "update pg_database set datistemplate = TRUE where datname = 'template1';"
   sudo -u postgres psql template1 -c "update pg_database set datallowconn = FALSE where datname = 'template0';"
+else
+    for attempt_no in {1..10} ; do
+        ping -c 1 $PG_HOST
+        echo "${PG_HOST}:*:*:${PG_USER}:${PG_PASS}" > $HOME/.pgpass
+        if [ $? -eq 0 ]; then
+            echo "Testing the DB to make sure it's ready"
+            psql -h "${PG_HOST}" -U "${PG_USER}" -c "select version();" \
+                && break # leave loop early
+        fi
+    done
 fi
 
 [ -n "$INTENTIONALLY_SLEEP" ] && sleep $INTENTIONALLY_SLEEP
